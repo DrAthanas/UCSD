@@ -5,8 +5,8 @@
 library(xlsx)
 
 # All files are located on gleensongateway server
-NJS_Path = "~/gleesonlab/NJS2_reports/" # Change to path on server
-setwd("~/gleesonlab/") # Change to path on server
+NJS_Path = "~/R Projects/UCSD/GleesonLab/NJS2_reports/" # Change to path on server
+setwd("~/R Projects/UCSD/GleesonLab/") # Change to path on server
 
 # Mapping contains all xlsx files and their coresponding patients
 mapping <- data.frame(read.table(file = "TempPatients.tsv", header = T, sep = '\t'))
@@ -39,25 +39,26 @@ relate <-function(x){
   # find patient ID from mapping file
   name <- as.character(mapping$Samp)[match(substr(x,1, nchar(x)-5),mapping$external_id)]
   
-  for(i in 2:3)
+  for(i in 2:8){
     temp <- load(x,i)
     if(nrow(temp) > 0){
       temp[temp == ""] <- NA
       temp <- temp[rowSums(is.na(temp)) != length(temp),]
       temp <- data.frame(patientID = name, temp)
-      #tables[i] <- rbind(data.frame(tables[i]), temp)
+      
       switch(i,
-             NULL,
-             P_homo <<- rbind(P_homo, temp),
-             C_het <<- rbind(C_het, temp),
-             DeNovo <<- rbind(DeNovo, temp),
-             Dom <<- rbind(Dom, temp),
-             P_het <<- rbind(P_het, temp),
-             Homo <<- rbind(Homo, temp),
-             Het <<- rbind(Het, temp)
-             #,CNV <<- rbind(CNV, temp),
-             )
+              NULL,
+              P_homo <<- rbind(P_homo, temp),
+              C_het <<- rbind(C_het, temp),
+              DeNovo <<- rbind(DeNovo, temp),
+              Dom <<- rbind(Dom, temp),
+              P_het <<- rbind(P_het, temp),
+              Homo <<- rbind(Homo, temp),
+              Het <<- rbind(Het, temp)
+              #,CNV <<- rbind(CNV, temp),
+            )
     }
+  }
 }
 
 
@@ -67,5 +68,21 @@ for( i in 1:length(file.names)){
   file.names[i]
   file <- file.names[i]
   relate(file)
-  
+}
+
+
+for(i in 2:length(tables)){
+  name <- switch(i,
+         NULL,
+         "Prioritized_Homozygous",
+         "Compound_Heterozygous",
+         "DeNovo",
+         "Dominant",
+         "Prioritized_Heterozygous",
+         "Homozygous",
+         "Heterozygous"
+         #"CNV",
+  )
+  name <- paste0(name,".csv")
+  write.csv(name, data.frame(tables[i]))
 }
