@@ -1,0 +1,71 @@
+### Load all NJS2.0 files and create a functional database to cross reference
+### Author: Argus Athanas
+
+#required libraries
+library(xlsx)
+
+# All files are located on gleensongateway server
+NJS_Path = "~/gleesonlab/NJS2_reports/" # Change to path on server
+setwd("~/gleesonlab/") # Change to path on server
+
+# Mapping contains all xlsx files and their coresponding patients
+mapping <- data.frame(read.table(file = "TempPatients.tsv", header = T, sep = '\t'))
+
+# Initialize all dataframes to be used """something is messed up with libre - need to create template"""
+initfile <- "2897699934.xlsx"
+P_homo <- read.xlsx2(initfile, 2, endRow = 1) #2. init. Prioritized homozygous DF
+C_het <- read.xlsx2(initfile, 3, endRow = 1) #3. init. Compound heterozygous DF
+DeNovo <- read.xlsx2(initfile, 4, endRow = 1) #4. init. DeNovo DF
+Dom <- read.xlsx2(initfile, 5, endRow = 1) #5. init. Dominants DF
+P_het <- read.xlsx2(initfile, 6, endRow = 1) #6. init. Prioritized Heterozygous DF
+Homo <- read.xlsx2(initfile, 7, endRow = 1) #7. init. Homozygous DF
+Het <- read.xlsx2(initfile, 8, endRow = 1) #8. init. Heterozygous DF
+#CNV <- read.xlsx2(initfile, 9, endRow = 1) #9. init. CNV DF
+
+# Create list of tables for index refrencing
+tables <- list(NULL, P_homo, C_het, DeNovo, Dom, P_het, Homo, Het)
+
+
+### using xlsx package to read xlsx files into DFs
+load <- function(x,s){
+  #load data, remove blank rows
+  temp <- read.xlsx2(paste0(NJS_Path,x),s)
+  return(temp)
+}
+
+
+### Relate all tables by patient ID
+relate <-function(x){
+  # find patient ID from mapping file
+  name <- as.character(mapping$Samp)[match(substr(x,1, nchar(x)-5),mapping$external_id)]
+  
+  for(i in 2:3)
+    temp <- load(x,i)
+    if(nrow(temp) > 0){
+      temp[temp == ""] <- NA
+      temp <- temp[rowSums(is.na(temp)) != length(temp),]
+      temp <- data.frame(patientID = name, temp)
+      #tables[i] <- rbind(data.frame(tables[i]), temp)
+      switch(i,
+             NULL,
+             P_homo <<- rbind(P_homo, temp),
+             C_het <<- rbind(C_het, temp),
+             DeNovo <<- rbind(DeNovo, temp),
+             Dom <<- rbind(Dom, temp),
+             P_het <<- rbind(P_het, temp),
+             Homo <<- rbind(Homo, temp),
+             Het <<- rbind(Het, temp)
+             #,CNV <<- rbind(CNV, temp),
+             )
+    }
+}
+
+
+file.names <- dir(NJS_Path, pattern = "*.xlsx")
+length(file.names) #check that all files are captured
+for( i in 1:length(file.names)){
+  file.names[i]
+  file <- file.names[i]
+  relate(file)
+  
+}
